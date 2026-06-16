@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-
+from datetime import datetime
 from .models import ImportJob, Transaction
 from .tasks import import_transactions
 
@@ -61,10 +61,21 @@ class SummaryView(View):
 
         transactions = Transaction.objects.all()
 
-        if date_from:
-            transactions = transactions.filter(transacted_at__gte=date_from)
-        if date_to:
-            transactions = transactions.filter(transacted_at__lte=date_to)
+        try:
+            if date_from:
+                date_from = datetime.fromisoformat(date_from)
+                transactions = transactions.filter(transacted_at__gte=date_from)
+        except ValueError:
+            print("Invalid date format for 'from':", date_from)
+            return JsonResponse({"error": "Invalid date format for 'from'. Use ISO format."}, status=400)
+
+        try:
+            if date_to:
+                date_to = datetime.fromisoformat(date_to)
+                transactions = transactions.filter(transacted_at__lte=date_to)
+        except ValueError:
+            print("Invalid date format for 'to':", date_to)
+            return JsonResponse({"error": "Invalid date format for 'to'. Use ISO format."}, status=400)
 
         # Aggregate in Python
         summary = {}
