@@ -53,6 +53,22 @@ The current `import_transactions` load the entire file in memory which can have 
 
 The solution is to read the CSV file in chunks.
 
+#### DB unoptimization calls
+
+There are multiple calls to `job.save()` which is not efficient:
+
+- before the CSV parsing,
+- after the CSV parsing,
+- each time a row is inserted (very inefficient)
+- when the process is completed.
+
+I would recommend 2 options:
+
+- only save the import when the process is complete,
+- better, insert the job on entering the function, and when the process is complete.
+
+And by the way instead of calling the DB on each transaction row, it's better to do a bulk insert of the non duplicate rows in the current chunk.
+
 #### Row duplication check (Priority: Medium)
 
 The current implementation is not efficient has it fetches the database on each row to check if the reference has not been already inserted. 
