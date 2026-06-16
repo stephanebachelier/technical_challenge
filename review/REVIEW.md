@@ -106,7 +106,7 @@ Temporary files will be probably lost on server restart.
 
 #### SummaryView
 
-##### Missing sanity checks (Priority: High)
+##### Missing sanity checks (Priority: Critical)
 
 There is no check on the validity of the `from` and `to` query parameters. If using any invalid string it fails.
 
@@ -226,7 +226,7 @@ I would only fix the enums defined in [Use of hardcoded string instead of enums]
 
 The STATUSES array is a trick to play with probability that is acceptable in a quick and dirty fix, as improving it takes more time and complexity than the gain it provides.
 
-### Outdated dependencies (Priority: Medium or High)
+### Outdated dependencies (Priority: Critical)
 
 ![outdated dependencies](requirements.png)
 
