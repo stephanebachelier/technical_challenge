@@ -47,6 +47,12 @@ Note: a user can rename the file that will trigger the import process which will
 
 ### Tasks
 
+#### Bug in import (Priority: Critical)
+
+There is no check on the field validity in the current implementation. Invalid amount and dates are not handled correctly.
+
+A row with an invalid date or invalid amount can be injected in the database. Logic should be added to parse the incoming data. The best way is to have a schema to apply on each row to prevent invalid data from being injected. 
+
 #### Memory issue (Priority: High)
 
 The current `import_transactions` load the entire file in memory which can have serious performances issues.
