@@ -2,6 +2,7 @@ import os
 import tempfile
 
 from django.http import JsonResponse
+from django.db.models import Sum
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -59,7 +60,7 @@ class SummaryView(View):
         date_from = request.GET.get("from")
         date_to = request.GET.get("to")
 
-        transactions = Transaction.objects.all()
+        transactions = Transaction.objects.values("category").annotate(total=Sum("amount")).all()
 
         try:
             if date_from:
@@ -77,18 +78,10 @@ class SummaryView(View):
             print("Invalid date format for 'to':", date_to)
             return JsonResponse({"error": "Invalid date format for 'to'. Use ISO format."}, status=400)
 
-        # Aggregate in Python
-        summary = {}
-        for t in transactions:
-            cat = t.category
-            if cat not in summary:
-                summary[cat] = 0
-            summary[cat] += float(t.amount)
+        result = [{"category": t["category"], "total": round(t["total"], 2)} for t in transactions.order_by('-total')]
+        print("Aggregated result from database:", result)
 
-        result = [{"category": k, "total": round(v, 2)} for k, v in summary.items()]
-        result.sort(key=lambda x: x["total"], reverse=True)
-
-        return JsonResponse({"results": result})
+        return JsonResponse({"results": result })
 
 
 class JobStatusView(View):
