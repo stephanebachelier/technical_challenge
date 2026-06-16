@@ -16,13 +16,17 @@ def import_transactions(job_id, file_path):
     job.status = "running"
     job.save()
 
-    # Load the entire file into memory at once
-    df = pd.read_csv(file_path)
+    # Load the file in chunks to avoid memory issues with large files
+    chunks = pd.read_csv(
+        file_path,
+        chunksize=1000,
+        low_memory=True,
+    )
 
-    job.total_rows = len(df)
-    job.save()
+    total_rows = 0
 
-    for index, row in df.iterrows():
+    for index, row in enumerate(chunks, start=1):
+        total_rows += len(row)
         try:
             # Check duplicate row by row
             exists = Transaction.objects.filter(reference=row["reference"]).exists()
@@ -51,6 +55,7 @@ def import_transactions(job_id, file_path):
             job.error_log += f"Error on row {index} ({row.get('reference', '?')}): {e}\n"
             job.save()
 
+    job.total_rows = total_rows
     job.status = "done"
     job.finished_at = timezone.now()
     job.save()
