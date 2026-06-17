@@ -14,7 +14,6 @@ def parse_date(value):
     Returns None if the input is invalid.
     """
     if value == "" or pd.isna(value):
-        #print(f"Invalid date format: '{value}'")
         return None
 
     for fmt in date_formats:
@@ -24,7 +23,6 @@ def parse_date(value):
         except ValueError:
             continue
 
-    #print(f"Invalid date format: '{value}'")
     return None
 
 
@@ -34,13 +32,11 @@ def parse_amount(value):
     Returns None if the input is invalid.
     """
     if value == "" or pd.isna(value):
-        #print(f"Invalid amount value: '{value}'")
         return None
 
     try:
         return float(value)
     except ValueError:
-        #print(f"Invalid amount value: '{value}'")
         return None
 
 def parse_currency(value):
