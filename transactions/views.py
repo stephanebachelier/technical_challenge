@@ -7,8 +7,10 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from datetime import datetime
+from enums import Currency
 from .models import ImportJob, Transaction
 from .tasks import import_transactions
+from .utils import parse_currency
 
 UPLOAD_DIR = "/tmp/imports"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -59,8 +61,10 @@ class SummaryView(View):
     def get(self, request):
         date_from = request.GET.get("from")
         date_to = request.GET.get("to")
+        currency = parse_currency(request.GET.get("currency"), Currency.USD)  # Default to USD if not provided
+        print(f"Received request with parameters: from={date_from}, to={date_to}, currency={currency}")
 
-        transactions = Transaction.objects.values("category").annotate(total=Sum("amount")).all()
+        transactions = Transaction.objects.all()
 
         try:
             if date_from:
@@ -78,7 +82,15 @@ class SummaryView(View):
             print("Invalid date format for 'to':", date_to)
             return JsonResponse({"error": "Invalid date format for 'to'. Use ISO format."}, status=400)
 
-        result = [{"category": t["category"], "total": round(t["total"], 2)} for t in transactions.order_by('-total')]
+        try:
+            print("Filtering transactions by currency:", currency)
+            if currency:
+                transactions = transactions.filter(currency=currency.value)
+        except ValueError:
+            print("Invalid currency:", currency)
+            return JsonResponse({"error": "Invalid currency."}, status=400)
+
+        result = [{"category": t["category"], "total": round(t["total"], 2)} for t in transactions.values("category").annotate(total=Sum("amount")).order_by('-total')]
         print("Aggregated result from database:", result)
 
         return JsonResponse({"results": result })

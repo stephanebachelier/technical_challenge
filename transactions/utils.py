@@ -35,44 +35,44 @@ def parse_amount(value):
     except ValueError:
         return None
 
-def parse_currency(value):
+def parse_currency(value, default=None):
     """
     Parses a currency string and returns it if valid.
     Returns None if the input is invalid.
     """
     if value == "" or value is None:
-        return None
+        return default
 
     try: 
         return Currency(value.upper())
     except ValueError:
-        return None
+        return default
 
-def parse_category(value):
+def parse_category(value, default=None):
     """
     Parses a category string and returns it if valid.
     Returns None if the input is invalid.
     """
     if value == "" or value is None:
-        return None
+        return default
 
     try:
         return Category(value.upper())
     except ValueError:
-        return None
+        return default
 
-def parse_status(value):
+def parse_status(value, default=None):
     """
     Parses a status string and returns it if valid.
     Returns None if the input is invalid.
     """
     if value == "" or value is None:
-        return None
+        return default
 
     try:
         return TransactionStatus(value.upper())
     except ValueError:
-        return None
+        return default
 
 def parse_rows(rows):
     """
