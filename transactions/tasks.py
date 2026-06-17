@@ -6,6 +6,80 @@ from django.utils import timezone
 from .models import ImportJob, Transaction
 
 
+date_formats = ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%d', '%d/%m/%Y']
+
+def parse_date(value):
+    """
+    Parses a date string in ISO format and returns a datetime object.
+    Returns None if the input is invalid.
+    """
+    if value == "" or pd.isna(value):
+        #print(f"Invalid date format: '{value}'")
+        return None
+
+    for fmt in date_formats:
+        try:
+            ts = datetime.strptime(value, fmt)
+            return timezone.make_aware(ts)
+        except ValueError:
+            continue
+
+    #print(f"Invalid date format: '{value}'")
+    return None
+
+
+def parse_amount(value):
+    """
+    Parses an amount string and returns a float.
+    Returns None if the input is invalid.
+    """
+    if value == "" or pd.isna(value):
+        #print(f"Invalid amount value: '{value}'")
+        return None
+
+    try:
+        return float(value)
+    except ValueError:
+        #print(f"Invalid amount value: '{value}'")
+        return None
+
+def parse_rows(rows):
+    """
+    Parses a list of rows (DataFrame rows) and returns a list of dicts with parsed values.
+    """
+    transactions = []
+    bad_rows = []
+
+    for row in rows:
+        amount = parse_amount(row.amount)
+
+        if amount is None:
+            print(f"Invalid amount for row {row.reference}: {row.amount}")
+            bad_rows.append(row.reference)
+            continue
+
+
+        transacted_at = parse_date(row.transacted_at)
+
+        if transacted_at is None:
+            print(f"Invalid date format for row {row.reference}: {row.transacted_at}")
+            bad_rows.append(row.reference)
+            continue
+
+        transactions.append({
+            "reference": row.reference,
+            "amount": amount,
+            "currency": row.currency,
+            "category": row.category,
+            "merchant": row.merchant,
+            "status": row.status,
+            "transacted_at": transacted_at,
+        })
+
+    #print(transactions)  # Debugging: print the list of parsed transactions
+    print(f"Bad rows: {bad_rows}")  # Debugging: print the list of bad rows
+    return transactions
+
 @shared_task
 def import_transactions(job_id, file_path):
     """
@@ -24,37 +98,58 @@ def import_transactions(job_id, file_path):
     )
 
     total_rows = 0
+    failed_rows = 0
+    imported_rows = 0
 
-    for index, row in enumerate(chunks, start=1):
-        total_rows += len(row)
+    seen_references = set()
+
+    for index, chunk in enumerate(chunks, start=1):
+        chunk_rows = len(chunk)
+        print(f"Processing chunk {index} with {chunk_rows} rows...")
+        total_rows += chunk_rows
+
+        incoming_refs = chunk["reference"].tolist()
+
+        # eliminate duplicated references within the chunk
+        deduplicated_refs = []
+
+        for ref in incoming_refs:
+            if ref not in seen_references:
+                deduplicated_refs.append(ref)
+                seen_references.add(ref)
+
+        # Bulk read to fetch database
+        existing_refs = set(
+            Transaction.objects.filter(reference__in=deduplicated_refs).values_list("reference", flat=True)
+        )
+
+        print(f"Found {len(existing_refs)} existing references in chunk {index}.")
+
         try:
-            # Check duplicate row by row
-            exists = Transaction.objects.filter(reference=row["reference"]).exists()
-            if exists:
-                job.failed_rows += 1
-                job.error_log += f"Duplicate: {row['reference']}\n"
-                job.save()
-                continue
+            new_rows = chunk[~chunk['reference'].isin(existing_refs)]
+            print(f"Found {len(new_rows)} new references in chunk {index}.")
 
-            t = Transaction(
-                reference=row["reference"],
-                amount=row["amount"],
-                currency=row["currency"],
-                category=row["category"],
-                merchant=row["merchant"],
-                status=row["status"],
-                transacted_at=datetime.fromisoformat(str(row["transacted_at"])),
-            )
-            t.save()
+            new_transactions = [
+                Transaction(**row)
+                for row in parse_rows(new_rows.itertuples(index=False))
+            ]
 
-            job.imported_rows += 1
-            job.save()
+            failed_rows += chunk_rows - len(existing_refs) - len(new_transactions)
+
+            # Bulk create new transactions
+            imported = Transaction.objects.bulk_create(new_transactions)
+            chunk_imported_rows = len(imported)
+            print(f"Imported {chunk_imported_rows} new transactions in chunk {index}.")
+            imported_rows += chunk_imported_rows
 
         except Exception as e:
-            job.failed_rows += 1
-            job.error_log += f"Error on row {index} ({row.get('reference', '?')}): {e}\n"
+            print(f"Error processing chunk {index} rows #{chunk_rows}: {e}")
+            job.failed_rows += chunk_rows
+            job.error_log += f"Error on chunk {index} (rows {chunk_rows}): {e}\n"
             job.save()
 
+    job.failed_rows = failed_rows
+    job.imported_rows = imported_rows
     job.total_rows = total_rows
     job.status = "done"
     job.finished_at = timezone.now()
