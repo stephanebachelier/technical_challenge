@@ -234,6 +234,10 @@ Django version has 14 vulnerabilities that are available for the current 5.0.6 v
 
 Update risks should be evaluated to understand if some parts are at risks as it can create possible issues.
 
+## TASK DONE
+
+See [done tasks](./DONE.md)
 
 ## TO BE DONE
 
+See [pending tasks](./PENDING.md)

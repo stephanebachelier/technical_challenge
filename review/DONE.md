@@ -195,3 +195,22 @@ Migration done using :
 
 See [### DB unoptimization calls](### DB unoptimization calls).
 
+## Issues or improvments
+
+### Use of hardcoded string instead of enums (Priority: Medium)
+
+Added a new enums module to provide enums. 
+
+## Models
+
+### Implementing choices (Priority: Medium)
+
+Use enum as TextChoices to configure models too (see previous point).
+
+Also added a migration as the definition is changed.
+
+## API
+
+Without modifiying the current API Contract (explicitly asked in the README.md), I've added a new `currency` query parameter, which fix the issue about aggregating transactions in different currencies. 
+
+If no `currency` is provided it will default to `USD`. This is debatable.
