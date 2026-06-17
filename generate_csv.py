@@ -7,14 +7,15 @@ import csv
 import random
 import uuid
 from datetime import datetime, timedelta
+from enums import Category, Currency, TransactionStatus
 
-CATEGORIES = ["food", "transport", "utilities", "entertainment", "health", "travel"]
+CATEGORIES = [category.value for category in Category]
 MERCHANTS = [
     "Carrefour", "SNCF", "EDF", "Netflix", "Doctolib",
     "Air France", "Fnac", "Decathlon", "Uber", "Leclerc",
 ]
-CURRENCIES = ["EUR", "USD", "GBP"]
-STATUSES = ["completed", "completed", "completed", "pending", "failed"]
+CURRENCIES = [currency.value for currency in Currency]
+STATUSES = [status.value for status in TransactionStatus]
 
 TOTAL_ROWS = 5000
 DUPLICATE_REFS = 40   # rows that share a reference with an earlier row
@@ -48,10 +49,10 @@ for _ in range(DUPLICATE_REFS):
         {
             "reference": ref,
             "amount": round(random.uniform(1.0, 500.0), 2),
-            "currency": "EUR",
+            "currency": Currency.EUR.value,
             "category": random.choice(CATEGORIES),
             "merchant": random.choice(MERCHANTS),
-            "status": "completed",
+            "status": TransactionStatus.COMPLETED.value,
             "transacted_at": (
                 base_date + timedelta(days=random.randint(0, 364))
             ).isoformat(),
@@ -66,7 +67,7 @@ for _ in range(BAD_ROWS):
             "currency": random.choice(CURRENCIES),
             "category": "",
             "merchant": random.choice(MERCHANTS),
-            "status": "completed",
+            "status": TransactionStatus.COMPLETED.value,
             "transacted_at": random.choice(["", "31/02/2024", "not-a-date"]),
         }
     )
