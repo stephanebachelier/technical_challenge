@@ -172,3 +172,26 @@ Average: .0010 seconds
 #### Conclusion
 
 Targetting my local environment with only a CSV import in the database, it does not make so much difference, but on a full database the SQL aggregation will outperform the retrieval of all rows and then aggregating in Python.
+
+## Tasks
+
+### Memory issue
+
+Migrated to CSV reading in chunks.
+
+#### Bug in import (Priority: Critical)
+
+Each row is now parsed to make sure `amount` and `transacted_at` fields are valid. This is a first approach to make sure that invalid fields are not added to the DB. It would be better to validate all the fields (schema?), as it's still possible to add invalid data, like `usd` or `USD` or `$` to target USD currency or any other invalid string.
+
+
+### DB unoptimization calls
+
+Migration done using :
+
+- bulk_read to fetch existence of a deduplicated chunk of references. It needs to first deduplicate references in a chunk and then already imported references,
+- bulk_write to insert valid non existing references. As there is no save, pre_save on Transactions it causes no problem.
+
+### Row duplication check
+
+See [### DB unoptimization calls](### DB unoptimization calls).
+
