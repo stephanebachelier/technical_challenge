@@ -4,7 +4,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from .models import ImportJob, Transaction
-
+from enums import Category, Currency, TransactionStatus
 
 date_formats = ['%Y-%m-%dT%H:%M:%S', '%Y-%m-%d', '%d/%m/%Y']
 
@@ -43,6 +43,45 @@ def parse_amount(value):
         #print(f"Invalid amount value: '{value}'")
         return None
 
+def parse_currency(value):
+    """
+    Parses a currency string and returns it if valid.
+    Returns None if the input is invalid.
+    """
+    if value == "" or value is None:
+        return None
+
+    try: 
+        return Currency(value.upper())
+    except ValueError:
+        return None
+
+def parse_category(value):
+    """
+    Parses a category string and returns it if valid.
+    Returns None if the input is invalid.
+    """
+    if value == "" or value is None:
+        return None
+
+    try:
+        return Category(value.upper())
+    except ValueError:
+        return None
+
+def parse_status(value):
+    """
+    Parses a status string and returns it if valid.
+    Returns None if the input is invalid.
+    """
+    if value == "" or value is None:
+        return None
+
+    try:
+        return TransactionStatus(value.upper())
+    except ValueError:
+        return None
+
 def parse_rows(rows):
     """
     Parses a list of rows (DataFrame rows) and returns a list of dicts with parsed values.
@@ -69,10 +108,10 @@ def parse_rows(rows):
         transactions.append({
             "reference": row.reference,
             "amount": amount,
-            "currency": row.currency,
-            "category": row.category,
+            "currency": parse_currency(row.currency),
+            "category": parse_category(row.category),
             "merchant": row.merchant,
-            "status": row.status,
+            "status": parse_status(row.status),
             "transacted_at": transacted_at,
         })
 
