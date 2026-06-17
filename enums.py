@@ -1,16 +1,16 @@
-from enum import Enum
+from django.db import models
 
-class Currency(Enum):
+class Currency(models.TextChoices):
   USD = "USD", "US Dollar"
   EUR = "EUR", "Euro"
   GBP = "GBP", "British Pound"
 
-class TransactionStatus(Enum):
+class TransactionStatus(models.TextChoices):
   COMPLETED = "completed", "Completed"
   PENDING = "pending", "Pending"
   FAILED = "failed", "Failed"
 
-class Category(Enum):
+class Category(models.TextChoices):
   FOOD = "food", "Food"
   TRANSPORT = "transport", "Transport"
   UTILITIES = "utilities", "Utilities"
@@ -18,7 +18,8 @@ class Category(Enum):
   HEALTH = "health", "Health"
   TRAVEL = "travel", "Travel"
 
-class JobStatus(Enum):
+class JobStatus(models.TextChoices):
+  PENDING = "pending", "Pending"
   RUNNING = "running", "Running"
   COMPLETED = "completed", "Completed"
   FAILED = "failed", "Failed"
